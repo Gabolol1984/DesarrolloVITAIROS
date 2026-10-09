@@ -51,4 +51,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // ---- Agregadas para la app Registro DUOC ----
+    implementation(libs.androidx.lifecycle.viewmodel.compose)   // viewModel() dentro de Compose
+    implementation(libs.androidx.navigation.compose)            // NavHost y NavController
+
 }
