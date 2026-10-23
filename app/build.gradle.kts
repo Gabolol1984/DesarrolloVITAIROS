@@ -58,7 +58,6 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)    // Íconos (editar, eliminar)
     implementation(libs.androidx.room.runtime)                   // Room: clases y anotaciones para la base de datos
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.compose.material.icons.core)    // Íconos (check, advertencia, rostro, engranaje, flecha atrás)
-    implementation(libs.androidx.navigation.compose)        // Room + corrutinas (suspend) y Flow
+    implementation(libs.androidx.navigation.compose)        // Navegación en Compose
     ksp(libs.androidx.room.compiler)                             // Room: genera el código al compilar (KSP)
 }
