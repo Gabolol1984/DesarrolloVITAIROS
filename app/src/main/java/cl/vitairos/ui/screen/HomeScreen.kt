@@ -51,13 +51,6 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = onCerrarSesion,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Cerrar sesión")
-            }
-
-            Button(
                 onClick = onAgendarCita,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -67,4 +60,14 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
     }
+
+            Button(
+                onClick = onCerrarSesion,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cerrar sesión")
+            }
+
+
+
 }

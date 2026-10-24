@@ -57,15 +57,17 @@ fun AppNavigation() {
                         }
                     }
                 }
+
+
             )
+
+
         }
 
         composable(Rutas.CITA) {
             CitaScreen(
-                onVolver = {
-                    navController.popBackStack()
-                }
+                onVolver = { navController.popBackStack() }
             )
+
         }
-    }
-}
+    }}
