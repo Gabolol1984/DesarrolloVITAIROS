@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeScreen(
     correo: String,
+    onAgendarCita: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
     Scaffold { innerPadding ->
@@ -55,6 +56,15 @@ fun HomeScreen(
             ) {
                 Text("Cerrar sesión")
             }
+
+            Button(
+                onClick = onAgendarCita,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Agendar una cita")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
