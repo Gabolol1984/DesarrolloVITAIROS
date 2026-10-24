@@ -9,10 +9,12 @@ import androidx.navigation.compose.rememberNavController
 import cl.vitairos.ui.screen.HomeScreen
 import cl.vitairos.ui.screen.LoginScreen
 import cl.vitairos.viewmodel.LoginViewModel
+import cl.vitairos.ui.screen.CitaScreen
 
 object Rutas {
     const val LOGIN = "login"
     const val HOME = "home"
+    const val CITA = "cita"
 }
 
 @Composable
@@ -50,6 +52,14 @@ fun AppNavigation() {
                             inclusive = true
                         }
                     }
+                }
+            )
+        }
+
+        composable(Rutas.CITA) {
+            CitaScreen(
+                onVolver = {
+                    navController.popBackStack()
                 }
             )
         }
