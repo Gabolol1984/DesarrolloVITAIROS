@@ -28,6 +28,7 @@ fun AppNavigation() {
         startDestination = Rutas.LOGIN
     ) {
 
+
         composable(Rutas.LOGIN) {
             LoginScreen(
                 viewModel = loginViewModel,
@@ -44,6 +45,9 @@ fun AppNavigation() {
         composable(Rutas.HOME) {
             HomeScreen(
                 correo = loginViewModel.estado.value.correo,
+                onAgendarCita = {
+                    navController.navigate(Rutas.CITA)
+                },
                 onCerrarSesion = {
                     loginViewModel.cerrarSesion()
 
