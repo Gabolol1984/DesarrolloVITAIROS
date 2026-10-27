@@ -1,4 +1,4 @@
-package com.example.desarrollovitairos.ui.theme
+package cl.vitairos.viewmodel.desarrollovitairos.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

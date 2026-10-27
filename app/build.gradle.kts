@@ -54,5 +54,5 @@ dependencies {
     // ---- Agregadas para la app Registro DUOC ----
     implementation(libs.androidx.lifecycle.viewmodel.compose)   // viewModel() dentro de Compose
     implementation(libs.androidx.navigation.compose)            // NavHost y NavController
-
+    implementation("androidx.work:work-runtime-ktx:2.11.0")
 }

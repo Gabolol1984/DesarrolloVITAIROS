@@ -1,0 +1,11 @@
+ .idea/deviceManager.xml                            |  13 [32m++[m
+ .idea/gradle.xml                                   |   1 [32m+[m
+ .idea/inspectionProfiles/Project_Default.xml       |  11 [32m++[m
+ app/src/main/AndroidManifest.xml                   |   2 [32m+[m[31m-[m
+ .../main/java/cl/vitairos/model/LoginErrores.kt    |  12 [32m+[m[31m-[m
+ .../main/java/cl/vitairos/model/LoginUiState.kt    |  12 [32m+[m[31m-[m
+ .../java/cl/vitairos/navigation/AppNavigation.kt   |  50 [32m++++[m[31m---[m
+ .../main/java/cl/vitairos/ui/screen/HomeScreen.kt  |  58 [32m++++++++[m
+ .../main/java/cl/vitairos/ui/screen/LoginScreen.kt | 165 [32m++++++++++++[m[31m---------[m
+ .../java/cl/vitairos/viewmodel/LoginViewModel.kt   | 120 [32m++++++++++[m[31m-----[m
+ 10 files changed, 298 insertions(+), 146 deletions(-)

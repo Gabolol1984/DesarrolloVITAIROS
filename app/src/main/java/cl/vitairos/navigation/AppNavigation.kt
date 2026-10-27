@@ -1,45 +1,151 @@
+
 package cl.vitairos.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import cl.vitairos.model.HorasDisponibles
+
+import cl.vitairos.ui.screen.HomeScreen
 import cl.vitairos.ui.screen.LoginScreen
-import cl.vitairos.ui.screen.ResumenScreen
+import cl.vitairos.ui.screen.CitaScreen
+import cl.vitairos.ui.screen.LoginEspecialistaScreen
+import cl.vitairos.ui.screen.PerfilEspecialistaScreen
+
 import cl.vitairos.viewmodel.LoginViewModel
+import cl.vitairos.viewmodel.EspecialistaViewModel
 
 object Rutas {
-    const val FORMULARIO = "formulario"
-    const val RESUMEN = "resumen"
+    const val LOGIN = "login"
+    const val HOME = "home"
+    const val CITA = "cita"
+    const val LOGIN_ESPECIALISTA = "login_especialista"
+    const val PERFIL_ESPECIALISTA = "perfil_especialista"
 }
 
-// [29] AppNavigation conecta las pantallas entre sí.
 @Composable
 fun AppNavigation() {
 
-    // [30] NavController = sabe en qué pantalla estamos y permite ir a otra o volver.
     val navController = rememberNavController()
 
-    // [31] VIEWMODEL COMPARTIDO: se crea UNA sola vez, AQUÍ, fuera del NavHost,
-    // y se entrega a las DOS pantallas. Así ambas leen y modifican los mismos datos.
-    val viewModel: LoginViewModel = viewModel()
+    val loginViewModel: LoginViewModel = viewModel()
+    val especialistaViewModel: EspecialistaViewModel = viewModel()
 
-    // [32] NavHost = el "escenario" que muestra la pantalla de la ruta actual.
-    NavHost(navController = navController, startDestination = Rutas.FORMULARIO) {
+    val estadoLogin by loginViewModel.estado.collectAsState()
+    val horarios by especialistaViewModel.horarios.collectAsState()
 
-        composable(Rutas.FORMULARIO) {
+    NavHost(
+        navController = navController,
+        startDestination = Rutas.LOGIN
+    ) {
+
+        // LOGIN NORMAL
+        composable(Rutas.LOGIN) {
             LoginScreen(
-                viewModel = viewModel,
-                onEnviar = { navController.navigate(Rutas.RESUMEN) }
+                viewModel = loginViewModel,
+                onLoginExitoso = {
+                    navController.navigate(Rutas.HOME) {
+                        popUpTo(Rutas.LOGIN) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onEspecialista = {
+                    navController.navigate(
+                        Rutas.LOGIN_ESPECIALISTA
+                    )
+                }
             )
         }
 
-        composable(Rutas.RESUMEN) {
-            ResumenScreen(
-                viewModel = viewModel,
-                onVolver = { navController.popBackStack() }   // [33] saca el resumen de la pila → vuelve al formulario
+        // LOGIN ESPECIALISTA
+        composable(Rutas.LOGIN_ESPECIALISTA) {
+            LoginEspecialistaScreen(
+                onIngresar = {
+                    navController.navigate(
+                        Rutas.PERFIL_ESPECIALISTA
+                    ) {
+                        popUpTo(Rutas.LOGIN_ESPECIALISTA) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onVolver = {
+                    navController.popBackStack()
+                }
             )
         }
-    }
+
+        // PERFIL ESPECIALISTA
+        composable(Rutas.PERFIL_ESPECIALISTA) {
+            PerfilEspecialistaScreen(
+                horarios = horarios,
+
+                onAgregarHorario = { dia, inicio, fin ->
+                    especialistaViewModel.agregarHorario(
+                        dia, inicio, fin
+                    )
+                },
+
+                onCambiarDisponibilidad = { horario ->
+                    val indice = horarios.indexOf(horario)
+                    if (indice >= 0) {
+                        especialistaViewModel
+                            .cambiarDisponibilidad(indice)
+                    }
+                },
+                onEliminarHorario = { horario ->
+                    val indice = horarios.indexOf(horario)
+                    if (indice >= 0) {
+                        especialistaViewModel.eliminar(indice)
+                    }
+                },
+
+                onSalir = {
+                    navController.navigate(Rutas.LOGIN) {
+                        popUpTo(Rutas.LOGIN) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        // HOME USUARIO NORMAL
+        composable(Rutas.HOME) {
+            HomeScreen(
+                correo = estadoLogin.correo,
+
+                onAgendarCita = {
+                    navController.navigate(Rutas.CITA)
+                },
+
+                onCerrarSesion = {
+                    loginViewModel.cerrarSesion()
+
+                    navController.navigate(Rutas.LOGIN) {
+                        popUpTo(Rutas.HOME) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
+        // CITAS
+        // CITAS
+        composable(Rutas.CITA) {
+            CitaScreen(
+                horarios = horarios,
+                onVolver = {
+                    navController.popBackStack()
+                }
+            )
+        }
+   }
 }
