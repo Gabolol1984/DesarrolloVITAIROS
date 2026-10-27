@@ -26,7 +26,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding) // Evita que el contenido choque con las barras del sistema
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center
         ) {
@@ -58,16 +58,15 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-        }
-    }
 
+            // Moviendo este botón aquí dentro, ya se podrá presionar y respetará el diseño
             Button(
                 onClick = onCerrarSesion,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Cerrar sesión")
             }
-
-
-
+        }
+    }
 }
+

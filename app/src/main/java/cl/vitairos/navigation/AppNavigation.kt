@@ -142,6 +142,7 @@ fun AppNavigation() {
         composable(Rutas.CITA) {
             CitaScreen(
                 horarios = horarios,
+                correoPaciente = estadoLogin.correo,
                 onVolver = {
                     navController.popBackStack()
                 }

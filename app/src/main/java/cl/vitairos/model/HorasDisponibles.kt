@@ -4,7 +4,8 @@ data class HorasDisponibles(
     val dia: Int,
     val inicio: String,
     val fin: String,
-    val disponible: Boolean = true
+    val disponible: Boolean = true,
+    val especialistaId: String = "psicologo 1"
 )
 
 val diasSemana = listOf(
@@ -13,5 +14,6 @@ val diasSemana = listOf(
     "Miércoles",
     "Jueves",
     "Viernes",
-    "Sábado"
+    "Sábado",
+    "Domingo"
 )

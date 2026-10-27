@@ -16,7 +16,7 @@ import cl.vitairos.model.diasSemana
 @Composable
 fun PerfilEspecialistaScreen(
     horarios: List<HorasDisponibles>,
-    onAgregarHorario: (Int, String, String) -> Unit,
+    onAgregarHorario: (Int, String, String) -> String?,
     onCambiarDisponibilidad: (HorasDisponibles) -> Unit,
     onEliminarHorario: (HorasDisponibles) -> Unit,
     onSalir: () -> Unit
@@ -183,16 +183,11 @@ fun PerfilEspecialistaScreen(
                         }
 
                         else -> {
-                            diasSeleccionados.toList()
-                                .forEach { dia ->
-                                    onAgregarHorario(
-                                        dia,
-                                        horaInicio,
-                                        horaFin
-                                    )
-                                }
-
-                            mensajeError = ""
+                            val errores = diasSeleccionados.toList().mapNotNull { dia ->
+                                onAgregarHorario(dia, horaInicio, horaFin)
+                                    ?.let { "${diasAtencion[dia]}: $it" }
+                            }
+                            mensajeError = errores.joinToString("\n")
                             diasSeleccionados.clear()
                         }
                     }

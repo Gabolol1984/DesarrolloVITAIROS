@@ -1,15 +1,13 @@
 
+
 package cl.vitairos.ui.screen
 
-
 import android.Manifest
+import android.app.DatePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.LaunchedEffect
-import androidx.core.content.ContextCompat
-import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,40 +16,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.vitairos.model.HorasDisponibles
+import cl.vitairos.notificacion.NotificacionHelper
+import cl.vitairos.viewmodel.CitaViewModel
 import java.util.Calendar
 import java.util.Locale
-import cl.vitairos.notificacion.NotificacionHelper
+import cl.vitairos.model.diasSemana
 
 @Composable
 fun CitaScreen(
     horarios: List<HorasDisponibles>,
-    onVolver: () -> Unit
+    correoPaciente: String,
+    onVolver: () -> Unit,
+    citaViewModel: CitaViewModel = viewModel()
 ) {
     val context = LocalContext.current
 
-    val solicitarPermiso = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { concedido ->
-        // Si el paciente lo acepta, Android permitirá mostrar avisos.
-    }
-
-    LaunchedEffect(Unit) {
-        NotificacionHelper.crearCanal(context)
-
-        if (Build.VERSION.SDK_INT >= 33) {
-            val permisoConcedido = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (!permisoConcedido) {
-                solicitarPermiso.launch(
-                    Manifest.permission.POST_NOTIFICATIONS
-                )
-            }
-        }
-    }
+    val horasOcupadas by citaViewModel.horasOcupadas.collectAsState()
 
     var profesional by remember {
         mutableStateOf("Seleccionar profesional")
@@ -62,33 +45,94 @@ fun CitaScreen(
     var menuAbierto by remember { mutableStateOf(false) }
     var mensaje by remember { mutableStateOf("") }
 
-    val profesionales = listOf("psicologo 1", "psicologo 2")
-
-    // Los días del modelo van de lunes (0) a domingo (6).
-    val horariosDelDia = horarios.filter {
-        it.dia == diaSeleccionado && it.disponible
+    // Los profesionales se obtienen de los horarios persistidos en SQLite.
+    // Así no se ofrecen perfiles inventados que no tienen agenda publicada.
+    val profesionales = remember(horarios) {
+        horarios.map { it.especialistaId }.distinct().sorted()
     }
 
-    // Generar bloques de 60 minutos dentro de cada intervalo.
-    val horasDisponibles = remember(horariosDelDia) {
-        horariosDelDia.flatMap { intervalo ->
-            val inicio = convertirMinutos(intervalo.inicio)
-            val fin = convertirMinutos(intervalo.fin)
+    // Solicitar permiso para mostrar notificaciones.
+    val solicitarPermiso = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (!concedido) {
+            mensaje = "Las notificaciones están desactivadas."
+        }
+    }
 
-            if (inicio == null || fin == null || inicio >= fin) {
-                emptyList()
-            } else {
-                generateSequence(inicio) { anterior ->
-                    (anterior + 60).takeIf { it + 60 <= fin }
-                }.map { minutos ->
-                    "%02d:%02d".format(
-                        Locale.US,
-                        minutos / 60,
-                        minutos % 60
-                    )
-                }.toList()
+    LaunchedEffect(Unit) {
+        NotificacionHelper.crearCanal(context)
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            val permisoConcedido =
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+            if (!permisoConcedido) {
+                solicitarPermiso.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
             }
-        }.distinct().sorted()
+        }
+    }
+
+    // ACTUALIZAR LAS HORAS OCUPADAS CUANDO CAMBIA
+    // EL ESPECIALISTA O LA FECHA.
+    LaunchedEffect(profesional, fecha) {
+        horaSeleccionada = ""
+
+        if (
+            profesional != "Seleccionar profesional" &&
+            fecha.isNotBlank()
+        ) {
+            citaViewModel.cargarHorasOcupadas(
+                profesional,
+                fecha
+            )
+        } else {
+            citaViewModel.cargarHorasOcupadas("", "")
+        }
+    }
+
+    // Obtener los horarios configurados para ese especialista.
+    val horariosDelDia = horarios.filter {
+        it.especialistaId == profesional &&
+                it.dia == diaSeleccionado &&
+                it.disponible
+    }
+
+    // Generar horas de una hora de duración y excluir
+    // aquellas que ya están reservadas.
+    val horasDisponibles = remember(
+        horariosDelDia,
+        horasOcupadas
+    ) {
+        horariosDelDia
+            .flatMap { intervalo ->
+                val inicio = convertirMinutos(intervalo.inicio)
+                val fin = convertirMinutos(intervalo.fin)
+
+                if (inicio == null || fin == null || inicio >= fin) {
+                    emptyList()
+                } else {
+                    generateSequence(inicio) { anterior ->
+                        (anterior + 60).takeIf {
+                            it + 60 <= fin
+                        }
+                    }.map { minutos ->
+                        "%02d:%02d".format(
+                            Locale.US,
+                            minutos / 60,
+                            minutos % 60
+                        )
+                    }.toList()
+                }
+            }
+            .distinct()
+            .sorted()
+            .filterNot { it in horasOcupadas }
     }
 
     Column(
@@ -117,6 +161,13 @@ fun CitaScreen(
                 expanded = menuAbierto,
                 onDismissRequest = { menuAbierto = false }
             ) {
+                if (profesionales.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("Aún no hay agendas publicadas") },
+                        onClick = { menuAbierto = false },
+                        enabled = false
+                    )
+                }
                 profesionales.forEach { nombre ->
                     DropdownMenuItem(
                         text = { Text(nombre) },
@@ -133,6 +184,27 @@ fun CitaScreen(
             }
         }
 
+        if (profesional != "Seleccionar profesional") {
+            Text(
+                "Días y horarios de atención",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            val publicados = horarios
+                .filter { it.especialistaId == profesional && it.disponible }
+                .sortedWith(compareBy({ it.dia }, { it.inicio }))
+
+            if (publicados.isEmpty()) {
+                Text("Este profesional aún no ha publicado horarios.")
+            } else {
+                publicados.forEach {
+                    Text(
+                        "${diasSemana.getOrElse(it.dia) { "Día" }}: " +
+                                "${it.inicio} - ${it.fin}"
+                    )
+                }
+            }
+        }
         Text("Selecciona el día")
 
         OutlinedButton(
@@ -147,9 +219,13 @@ fun CitaScreen(
                         }
 
                         fecha = "%04d-%02d-%02d".format(
-                            Locale.US, year, month + 1, day
+                            Locale.US,
+                            year,
+                            month + 1,
+                            day
                         )
 
+                        // Lunes = 0, domingo = 6.
                         diaSeleccionado =
                             (seleccion.get(Calendar.DAY_OF_WEEK) + 5) % 7
 
@@ -179,10 +255,12 @@ fun CitaScreen(
             style = MaterialTheme.typography.titleMedium
         )
 
-        if (fecha.isEmpty()) {
+        if (profesional == "Seleccionar profesional") {
+            Text("Primero selecciona un profesional.")
+        } else if (fecha.isEmpty()) {
             Text("Primero selecciona una fecha.")
         } else if (horasDisponibles.isEmpty()) {
-            Text("El especialista no tiene horarios disponibles este día.")
+            Text("No hay horarios disponibles para esta fecha.")
         } else {
             horasDisponibles.forEach { hora ->
                 val seleccionado = horaSeleccionada == hora
@@ -211,32 +289,59 @@ fun CitaScreen(
 
         Button(
             onClick = {
-                mensaje = when {
-                    profesional == "Seleccionar profesional" ->
-                        "Selecciona un profesional."
+                when {
+                    profesional == "Seleccionar profesional" -> {
+                        mensaje = "Selecciona un profesional."
+                    }
 
-                    fecha.isBlank() ->
-                        "Selecciona una fecha."
+                    fecha.isBlank() -> {
+                        mensaje = "Selecciona una fecha."
+                    }
 
-                    horaSeleccionada.isBlank() ->
-                        "Selecciona una hora disponible."
+                    correoPaciente.isBlank() -> {
+                        mensaje = "Debes iniciar sesión como paciente."
+                    }
 
-                    horaSeleccionada !in horasDisponibles ->
-                        "El horario seleccionado ya no está disponible."
+                    horaSeleccionada.isBlank() -> {
+                        mensaje = "Selecciona una hora disponible."
+                    }
+
+                    horaSeleccionada !in horasDisponibles -> {
+                        mensaje = "Esa hora ya no está disponible."
+                    }
 
                     else -> {
-                        NotificacionHelper.programarRecordatorio(
-                            context = context,
-                            profesional = profesional,
+                        // GUARDAR LA CITA EN SQLITE.
+                        val guardada = citaViewModel.reservar(
+                            correo = correoPaciente,
+                            especialistaId = profesional,
                             fecha = fecha,
                             hora = horaSeleccionada
                         )
 
-                        "Cita confirmada.\n" +
-                                "Profesional: $profesional\n" +
-                                "Fecha: $fecha\n" +
-                                "Hora: $horaSeleccionada\n\n" +
-                                "Se ha programado tu recordatorio."
+                        if (guardada) {
+                            // Programar el recordatorio solamente
+                            // después de guardar la cita.
+                            NotificacionHelper.programarRecordatorio(
+                                context = context,
+                                profesional = profesional,
+                                fecha = fecha,
+                                hora = horaSeleccionada
+                            )
+
+                            mensaje = "Cita guardada correctamente."
+                            horaSeleccionada = ""
+                        } else {
+                            citaViewModel.cargarHorasOcupadas(
+                                profesional,
+                                fecha
+                            )
+
+                            horaSeleccionada = ""
+                            mensaje =
+                                "No se pudo reservar. " +
+                                        "Comprueba la fecha y las horas disponibles."
+                        }
                     }
                 }
             },

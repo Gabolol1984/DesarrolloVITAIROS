@@ -1,41 +1,41 @@
 
+
 package cl.vitairos.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import cl.vitairos.data.AgendaDatabaseHelper
 import cl.vitairos.model.HorasDisponibles
-import cl.vitairos.repository.EspecialistaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class EspecialistaViewModel(
-    application: Application
-) : AndroidViewModel(application) {
+class EspecialistaViewModel(application: Application) :
+    AndroidViewModel(application) {
 
-    private val repo = EspecialistaRepository(application)
+    private val db = AgendaDatabaseHelper(application)
 
-    private val _horarios = MutableStateFlow(repo.cargar())
+    // Debe coincidir con el identificador de la agenda del paciente.
+    private val especialistaId = "psicologo 1"
+
+    private val _horarios = MutableStateFlow(
+        db.obtenerHorarios(especialistaId)
+    )
 
     val horarios = _horarios.asStateFlow()
 
-    // AGREGAR UN HORARIO
     fun agregarHorario(
         dia: Int,
         inicio: String,
         fin: String
     ): String? {
+        val patron = Regex("""^([01]\d|2[0-3]):[0-5]\d$""")
 
-        val patron = Regex(
-            """^([01]\d|2[0-3]):[0-5]\d$"""
-        )
-
-        if (dia !in 0..6) {
-            return "Selecciona un día válido"
+        fun aMinutos(h: String) = h.substring(0, 2).toInt() * 60 + h.substring(3, 5).toInt()
+        if (aMinutos(fin) - aMinutos(inicio) < 60) {
+            return "El bloque debe durar al menos 60 minutos"
         }
 
-        if (!patron.matches(inicio) ||
-            !patron.matches(fin)
-        ) {
+        if (!patron.matches(inicio) || !patron.matches(fin)) {
             return "Utiliza el formato HH:mm"
         }
 
@@ -43,76 +43,48 @@ class EspecialistaViewModel(
             return "La hora inicial debe ser menor que la final"
         }
 
-        val existeSuperposicion = _horarios.value.any {
+        val superpuesto = _horarios.value.any {
             it.dia == dia &&
                     inicio < it.fin &&
                     fin > it.inicio
         }
 
-        if (existeSuperposicion) {
+        if (superpuesto) {
             return "Este horario se superpone con otro existente"
         }
 
-        val nuevoHorario = HorasDisponibles(
+        val nuevo = HorasDisponibles(
             dia = dia,
             inicio = inicio,
             fin = fin,
-            disponible = true
+            disponible = true,
+            especialistaId = especialistaId
         )
 
-        actualizar(_horarios.value + nuevoHorario)
-
-        return null
+        return try {
+            db.guardarHorario(especialistaId, nuevo)
+            recargar()
+            null
+        } catch (e: Exception) {
+            "No se pudo guardar el horario: ${e.message}"
+        }
     }
 
-    // CAMBIAR DISPONIBILIDAD
     fun cambiarDisponibilidad(indice: Int) {
+        val horario = _horarios.value.getOrNull(indice) ?: return
 
-        if (indice !in _horarios.value.indices) {
-            return
-        }
-
-        val nuevosHorarios = _horarios.value.mapIndexed {
-                i, horario ->
-
-            if (i == indice) {
-                horario.copy(
-                    disponible = !horario.disponible
-                )
-            } else {
-                horario
-            }
-        }
-
-        actualizar(nuevosHorarios)
+        db.cambiarDisponibilidad(especialistaId, horario)
+        recargar()
     }
 
-    // ELIMINAR UN HORARIO
     fun eliminar(indice: Int) {
+        val horario = _horarios.value.getOrNull(indice) ?: return
 
-        if (indice !in _horarios.value.indices) {
-            return
-        }
-
-        val nuevosHorarios = _horarios.value.filterIndexed {
-                i, _ -> i != indice
-        }
-
-        actualizar(nuevosHorarios)
+        db.eliminarHorario(especialistaId, horario)
+        recargar()
     }
 
-    // ACTUALIZAR Y GUARDAR HORARIOS
-    private fun actualizar(
-        nuevos: List<HorasDisponibles>
-    ) {
-
-        _horarios.value = nuevos.sortedWith(
-            compareBy(
-                { it.dia },
-                { it.inicio }
-            )
-        )
-
-        repo.guardar(_horarios.value)
+    fun recargar() {
+        _horarios.value = db.obtenerHorarios(especialistaId)
     }
 }
