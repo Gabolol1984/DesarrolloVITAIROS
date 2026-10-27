@@ -1,6 +1,14 @@
 
 package cl.vitairos.ui.screen
 
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
 import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import cl.vitairos.model.HorasDisponibles
 import java.util.Calendar
 import java.util.Locale
+import cl.vitairos.notificacion.NotificacionHelper
 
 @Composable
 fun CitaScreen(
@@ -20,6 +29,29 @@ fun CitaScreen(
     onVolver: () -> Unit
 ) {
     val context = LocalContext.current
+
+    val solicitarPermiso = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        // Si el paciente lo acepta, Android permitirá mostrar avisos.
+    }
+
+    LaunchedEffect(Unit) {
+        NotificacionHelper.crearCanal(context)
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            val permisoConcedido = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!permisoConcedido) {
+                solicitarPermiso.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            }
+        }
+    }
 
     var profesional by remember {
         mutableStateOf("Seleccionar profesional")
@@ -192,11 +224,20 @@ fun CitaScreen(
                     horaSeleccionada !in horasDisponibles ->
                         "El horario seleccionado ya no está disponible."
 
-                    else ->
-                        "Datos seleccionados:\n" +
+                    else -> {
+                        NotificacionHelper.programarRecordatorio(
+                            context = context,
+                            profesional = profesional,
+                            fecha = fecha,
+                            hora = horaSeleccionada
+                        )
+
+                        "Cita confirmada.\n" +
                                 "Profesional: $profesional\n" +
                                 "Fecha: $fecha\n" +
-                                "Hora: $horaSeleccionada"
+                                "Hora: $horaSeleccionada\n\n" +
+                                "Se ha programado tu recordatorio."
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
