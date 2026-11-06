@@ -59,5 +59,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)                   // Room: clases y anotaciones para la base de datos
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation.compose)        // Navegación en Compose
-    ksp(libs.androidx.room.compiler)                             // Room: genera el código al compilar (KSP)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.kotlinx.coroutines.android)// Room: genera el código al compilar (KSP)
 }
