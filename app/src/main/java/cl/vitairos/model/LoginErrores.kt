@@ -1,11 +1,7 @@
 package cl.vitairos.model
 
-data class LoginErrores (
-    val nombre: String? = null,
+data class LoginErrores(
     val correo: String? = null,
-    val aceptaTerminos: String? = null
-){
-    fun hayErrores(): Boolean {
-        return nombre != null || correo != null || aceptaTerminos != null
-    }
-}
+    val contrasena: String? = null,
+    val general: String? = null
+)

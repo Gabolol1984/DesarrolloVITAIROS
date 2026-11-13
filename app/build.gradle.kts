@@ -53,7 +53,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-
     // ---- Agregadas para la app Mis Tareas DUOC ----
     implementation(libs.androidx.lifecycle.viewmodel.compose)    // viewModel() dentro de Compose
     implementation(libs.androidx.compose.material.icons.core)    // Íconos (editar, eliminar)
@@ -67,6 +66,15 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)// Room: genera el código al compilar (KSP)
 
     // agrego dependencias para consumo Rest y cnexion entre interfaces.
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.kotlinx.coroutines.android)
+    ksp(libs.androidx.room.compiler)
+
+
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.retrofit)

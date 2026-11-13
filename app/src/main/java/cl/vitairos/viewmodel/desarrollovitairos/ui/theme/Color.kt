@@ -1,4 +1,4 @@
-package com.example.desarrollovitairos.ui.theme
+package cl.vitairos.viewmodel.desarrollovitairos.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
